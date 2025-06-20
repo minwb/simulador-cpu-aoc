@@ -1,0 +1,47 @@
+INSTRUÇÕES PARA O SIMULADOR DE CPU 
+
+
+1) COMPILAÇÃO
+
+- Utilize um compilador gcc para compilar o programa. 
+- No terminal, na pasta onde os arquivos se encontram, execute o comando: 
+  "gcc simulador.c -o simulador"
+
+
+2) EXECUÇÃO
+
+- O programa requer um arquivo de texto com o programa como um argumento de 
+  linha de comando.
+
+- O formato de uso é: "./simulador <nome_do_arquivo.txt>"
+
+- Exemplos usando os arquivos de teste fornecidos:
+  "./simulador programa1.txt"
+  "./simulador programa2.txt"
+
+
+3) INTERAÇÃO COM O SIMULADOR
+
+- Após a inicialização, o programa exibirá uma tela de boas-vindas e irá aguardar que 
+  a tecla 'Enter' seja pressionada para começar;
+
+- A cada ciclo de máquina, o estado atual de todos os registradores da CPU será exibido 
+  no terminal; 
+
+- O programa fará uma pausa e exibirá a mensagem: 
+  "pressione ENTER para iniciar o proximo ciclo ou CTRL+C para finalizar a execucao".
+  Para avançar, pressione a tecla 'Enter';
+
+- A simulação terminará automaticamente quando a instrução 'hlt' for executada.
+  O estado final da CPU será exibido;
+
+- Para forçar o encerramento do programa, utilize o atalho de teclado CTRL+C no terminal.
+
+
+4) ARQUIVOS INCLUSOS
+
+- simulador.c: O código-fonte principal;
+- simulador: O programa executável;
+- programa1.txt: O primeiro programa de teste;
+- programa2.txt: O segundo programa de teste;
+- instruções.txt: Arquivo de instruções.

@@ -169,7 +169,8 @@ int pegarOpcode(char* mnemonico)
 
 // converte uma string de registrador para seu numero
 int numeroRegistrador(char* str_reg) {
-    if (str_reg == NULL) {
+    if (str_reg == NULL) 
+    {
         return -1;
     }
     return atoi(str_reg + 1); // pula o 'r' e converte o resto para inteiro
@@ -593,28 +594,30 @@ void executa() {
 }
 
 void estadoCpu() {
-    printf("-------------------------------------------------\n");
+    printf("--------------------------------------------------\n");
     printf("CPU:\n");
     printf("RO: %04X  R1: %04X  R2: %04X  R3: %04X\n", reg[0], reg[1], reg[2], reg[3]);
     printf("MBR: %08X                PC: %04X\n", mbr, pc);
     printf("MAR: %04X                 IMM: %04X\n", mar, imm);
     printf("IR: %02X       RO0: %X         RO1: %X\n", ir, ro0, ro1);
     printf("E: %X        L: %X         G: %X\n", e, l, g);
-    printf("-------------------------------------------------\n");
+    printf("--------------------------------------------------\n");
 }
 
 int main(int argc, char* argv[]) 
 {
-    if (argc != 2) {
+    // validador de entrada
+    if (argc != 2) // necessario dois argumentos: nome do programa e nome do arquivo
+    {
         printf("erro: o programa precisa de um nome de arquivo como argumento\n");
         printf("formato: %s <programa.txt>\n", argv[0]);
-        return 1; // Encerra o programa
+        return 1; // encerra o programa
     }
 
     carregarMemoria(argv[1]);
 
     printf("------------------------------------------------------\n");
-    printf("                  CPU Simulator \n");
+    printf("                    CPU Simulator                      \n");
     printf("------------------------------------------------------\n\n");
 
     int rodando = 1; // flag: 1 = rodando, 0 = parar
@@ -635,9 +638,9 @@ int main(int argc, char* argv[])
         decodifica();
         executa();
 
-        // verifica condição de parada
-        // se a instrução for hlt, a execução deve parar
-        if (ir == 0) {
+        // verifica condição de parada 
+        if (ir == 0) 
+        {  
             rodando = 0;
         }
     }
