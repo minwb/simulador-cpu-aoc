@@ -11,7 +11,7 @@ unsigned char ir;
 unsigned char ro0, ro1;
 unsigned char e, l, g;
 
-// função que converte uma string de mnemônico para seu opcode
+// converte uma string de mnemônico para seu opcode
 int pegarOpcode(char* mnemonico) 
 {
     if (strcmp(mnemonico, "hlt") == 0) 
@@ -167,7 +167,7 @@ int pegarOpcode(char* mnemonico)
     return -1; // opcode não encontrado
 }
 
-// função que converte uma string de registrador para seu numero
+// converte uma string de registrador para seu numero
 int numeroRegistrador(char* str_reg) {
     if (str_reg == NULL) {
         return -1;
@@ -175,106 +175,134 @@ int numeroRegistrador(char* str_reg) {
     return atoi(str_reg + 1); // pula o 'r' e converte o resto para inteiro
 }
 
-void carregarArquivo (const char* nomeArquivo) // endereço;tipo;conteúdo 
-{
+void carregarMemoria(const char* nomeArquivo) {
     FILE* arquivo;
     char linha[100];
     char* pedaco;
 
     arquivo = fopen(nomeArquivo, "r");
-    if (arquivo == NULL) // verifica se o arquivo existe
+    if (arquivo == NULL) 
     {
-        printf("nao foi possivel abrir o arquivo '%s'.\n", nomeArquivo);
+        printf("erro em abrir o arquivo '%s'.\n", nomeArquivo);
         return;
     }
 
-    while (fgets(linha, sizeof(linha), arquivo) != NULL) // leitura por linha
+    // le o arquivo linha por linha
+    while (fgets(linha, sizeof(linha), arquivo) != NULL) 
     {
+
         // pega o endereço em hexa
         pedaco = strtok(linha, ";");
         if (pedaco == NULL) continue;
-
         long int endereco = strtol(pedaco, NULL, 16);
 
-        // pega o tipo - i para instrução, d para dado
+        // pega o tipo (i para instrução ou d para dado)
         pedaco = strtok(NULL, ";");
         if (pedaco == NULL) continue;
-
         char tipo = pedaco[0];
 
-        // pega o conteúdo (a instrução ou o dado)
+        // pega o conteudo 
         pedaco = strtok(NULL, ";\n");
         if (pedaco == NULL) continue;
-
         char* conteudo = pedaco;
 
         if (tipo == 'i')  // tipo instrução
         {
-            char* mnemonico = strtok(conteudo, " ,"); // pega o mnemonico
-
+            char* mnemonico = strtok(conteudo, " ,");
             if (mnemonico == NULL) continue;
 
             int opcode = pegarOpcode(mnemonico);
+            if (opcode == -1) 
+            {
+                printf("mnemonico '%s' desconhecido\n", mnemonico);
+                continue;
+            }
 
-            // inicia com -1 para sinalizar que o operando não foi encontrado
-            int numReg1 = -1, numReg2 = -1;  // variáveis temp que ajudam a função a fazer a tradução
+            // var temporárias 
+            int numReg1 = -1, numReg2 = -1;
             long int enderecoOUimm = -1;
 
-            // pega o resto dos operandos
-            char* operando1 = strtok(NULL, " ,");
-
-            if (operando1) 
+            // pega o primeiro operando
+            char* op1 = strtok(NULL, " ,");
+            if (op1) 
             {
-                numReg1 = numeroRegistrador(operando1);
-
-                char* operando2 = strtok(NULL, " ,");
-
-                if (operando2) 
+                if (op1[0] == 'r') 
                 {
-                    if (operando2[0] == 'r') 
-                    {
-                        numReg2 = numeroRegistrador(operando2);
-                    } 
-                    else 
-                    {
-                        enderecoOUimm = strtol(operando2, NULL, 16);
-                    }
+                    numReg1 = numeroRegistrador(op1);
+                } 
+                else 
+                {
+                    enderecoOUimm = strtol(op1, NULL, 16);
                 }
             }
-            
-            // monta a palavra de instrução baseada no opcode
-            if (opcode >= 0 && opcode <= 1) // 1 byte
-            { 
-                memoria[endereco] = (opcode << 3);
-            } 
 
-            else if ((opcode >= 2 && opcode <= 12) || opcode == 13) // 2 bytes
-            { 
-                memoria[endereco] = (opcode << 3) | (numReg1 << 1); 
-                memoria[endereco+1] = (numReg2 != -1) ? (numReg2 << 6) : 0;
+            // pega o segundo operando
+            char* op2 = strtok(NULL, " ,");
+            if (op2) 
+            {
+                if (op2[0] == 'r') 
+                {
+                    numReg2 = numeroRegistrador(op2);
+                } 
+                else 
+                {
+                    enderecoOUimm = strtol(op2, NULL, 16);
+                }
             }
 
-            else // 3 bytes
-            { 
-                 memoria[endereco] = (opcode << 3) | (numReg1 << 1);
-                 memoria[endereco+1] = (enderecoOUimm >> 8) & 0xFF; // byte alto
-                 memoria[endereco+2] = enderecoOUimm & 0xFF;      // byte baixo
+            // instruções de 1 byte
+            if (opcode <= 1) 
+            {
+                memoria[endereco] = (unsigned char)(opcode << 3);
+            }
+
+            // instruções de 2 bytes 
+            else if (opcode <= 13) 
+            {
+                unsigned short int palavra = 0; // palavra de 16 bits
+
+                // monta a palavra de 16 bits completa
+                palavra = (opcode << 11) | (numReg1 != -1 ? (numReg1 << 9) : 0) | (numReg2 != -1 ? (numReg2 << 7) : 0);
+
+                // armazena os 2 bytes na memoria
+                memoria[endereco] = (palavra >> 8) & 0xFF; // byte de cima
+                memoria[endereco + 1] = palavra & 0xFF; // byte de baixo
+            }
+
+            // instruções de 3 bytes 
+            else 
+            {
+                unsigned int palavra = 0; // palavra de 24 bits 
+                
+                if (opcode >= 14 && opcode <= 20) // jumps
+                { 
+                    palavra = (opcode << 19) | (enderecoOUimm & 0xFFFF);
+                } 
+                else // ld, st, movi, addi, etc
+                { 
+                    palavra = (opcode << 19) | (numReg1 != -1 ? (numReg1 << 17) : 0) | (enderecoOUimm & 0xFFFF);
+                }
+
+                // armazena os 3 bytes na memória
+                memoria[endereco] = (palavra >> 16) & 0xFF; // byte mais alto
+                memoria[endereco + 1] = (palavra >> 8) & 0xFF; // byte do meio
+                memoria[endereco + 2] = palavra & 0xFF; // byte mais baixo
             }
         }
 
         else if (tipo == 'd') // tipo dado
-        { 
+        {
+            // dados empre ocupam 2 bytes (16 bits)
             unsigned short int dado = strtol(conteudo, NULL, 16);
 
             memoria[endereco] = (dado >> 8) & 0xFF; // byte de cima
-            memoria[endereco+1] = dado & 0xFF;      // byte de baixo
+            memoria[endereco + 1] = dado & 0xFF; // byte de baixo
         }
     }
 
     fclose(arquivo);
-    printf("arquivo '%s' carregado na memoria\n", nomeArquivo);
+    printf("arquivo '%s' carregado na memoria.\n", nomeArquivo);
 }
-
 
 void busca() 
 {
@@ -287,13 +315,13 @@ void busca()
 
 
     // instrução de 1 byte
-    if (ir == 0 || ir == 1 || ir == 13)
+    if (ir == 0 || ir == 1)
     {
-        // instrução já esta completa no mbr e o pc ja foi incrementado
+        // nada a fazer
     }
 
     // instrução de 2 bytes
-    else if (ir >= 2 && ir <= 12) 
+    else if ((ir >= 2 && ir <= 12) || ir == 13)
     {
 
         mar = pc; // aponta para o segundo byte
@@ -367,7 +395,7 @@ void executa() {
     
     if (ir == 0) // hlt
     { 
-        printf("fim da execucao\n");
+       
     }
 
     else if (ir == 1) // nop
@@ -564,14 +592,58 @@ void executa() {
     }
 }
 
-int main(){ 
-    
-    // função para ler um arq .txt 
+void estadoCpu() {
+    printf("-------------------------------------------------\n");
+    printf("CPU:\n");
+    printf("RO: %04X  R1: %04X  R2: %04X  R3: %04X\n", reg[0], reg[1], reg[2], reg[3]);
+    printf("MBR: %08X                PC: %04X\n", mbr, pc);
+    printf("MAR: %04X                 IMM: %04X\n", mar, imm);
+    printf("IR: %02X       RO0: %X         RO1: %X\n", ir, ro0, ro1);
+    printf("E: %X        L: %X         G: %X\n", e, l, g);
+    printf("-------------------------------------------------\n");
+}
 
-    // while . .
-    busca();
-    decodifica();
-    executa();
+int main(int argc, char* argv[]) 
+{
+    if (argc != 2) {
+        printf("erro: o programa precisa de um nome de arquivo como argumento\n");
+        printf("formato: %s <programa.txt>\n", argv[0]);
+        return 1; // Encerra o programa
+    }
 
-    
-} 
+    carregarMemoria(argv[1]);
+
+    printf("------------------------------------------------------\n");
+    printf("                  CPU Simulator \n");
+    printf("------------------------------------------------------\n\n");
+
+    int rodando = 1; // flag: 1 = rodando, 0 = parar
+
+    printf("PRESSIONE ENTER PARA INICIAR\n");
+    getchar();
+
+    while (rodando) {
+        
+        estadoCpu();
+
+        printf("\npressione ENTER para iniciar o proximo ciclo ou CTRL+C para finalizar a execucao\n");
+        getchar();
+
+        printf("\nINICIANDO O PROXIMO CICLO:\n"); 
+
+        busca();
+        decodifica();
+        executa();
+
+        // verifica condição de parada
+        // se a instrução for hlt, a execução deve parar
+        if (ir == 0) {
+            rodando = 0;
+        }
+    }
+
+    printf("\ninstrucao HLT executada: FIM DE EXECUCAO\n");
+    estadoCpu();
+
+    return 0; 
+}
